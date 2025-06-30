@@ -1,0 +1,60 @@
+# ======================
+# Node.js (Express Backend)
+# ======================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+dist/
+build/
+
+# Logs
+logs/
+*.log
+*.pid
+*.pid.lock
+
+# Environment Files (KEEP .env)
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+
+# Allow .env
+!.env
+
+# ======================
+# React Frontend
+# ======================
+# dependencies
+client/node_modules/
+client/package-lock.json
+
+# build output
+client/build/
+client/dist/
+
+# testing
+client/coverage/
+
+# misc
+client/.DS_Store
+client/.env.local
+client/.env.development
+client/.env.production
+client/.env.test
+
+# Allow .env in client too (if you want to include it)
+!client/.env
+
+# ======================
+# IDEs and OS
+# ======================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
