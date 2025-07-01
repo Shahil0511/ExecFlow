@@ -2,6 +2,7 @@ import { Document, Types } from 'mongoose';
 
 // Base interface for role properties (without Document properties)
 export interface IRole {
+  _id?: Types.ObjectId | string;
   name: string;
   description?: string;
   permissions: string[];

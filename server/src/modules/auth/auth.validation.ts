@@ -1,6 +1,6 @@
-// auth.validation.ts (backend)
 import { z } from 'zod';
 
+// 🔐 Register Schema (already present)
 export const registerSchema = z.object({
   firstName: z
     .string()
@@ -26,4 +26,20 @@ export const registerSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/\d/, 'Password must contain at least one number'),
+});
+
+// 🔐 Login Schema
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Invalid email address')
+    .transform((v) => v.trim().toLowerCase()),
+
+  password: z.string().min(1, 'Password is required'),
+});
+
+// 🔐 Refresh Token Schema
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
 });

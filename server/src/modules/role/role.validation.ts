@@ -1,28 +1,43 @@
+// auth.validation.ts
 import { z } from 'zod';
-import { PERMISSIONS } from './role.types';
 
-const permissionValues = Object.values(PERMISSIONS) as [string, ...string[]];
-
-export const createRoleSchema = z.object({
-  name: z.string().min(1, 'Role name is required').max(50, 'Role name cannot exceed 50 characters'),
-  description: z.string().max(200, 'Description cannot exceed 200 characters').optional(),
-  permissions: z.array(z.enum(permissionValues)).min(1, 'At least one permission is required'),
-});
-
-export const updateRoleSchema = z.object({
-  name: z
+export const registerSchema = z.object({
+  firstName: z
     .string()
-    .min(1, 'Role name is required')
-    .max(50, 'Role name cannot exceed 50 characters')
-    .optional(),
-  description: z.string().max(200, 'Description cannot exceed 200 characters').optional(),
-  permissions: z
-    .array(z.enum(permissionValues))
-    .min(1, 'At least one permission is required')
-    .optional(),
-  isActive: z.boolean().optional(),
+    .min(1, 'First name is required')
+    .max(50, 'First name cannot exceed 50 characters')
+    .transform((v) => v.trim()),
+
+  lastName: z
+    .string()
+    .min(1, 'Last name is required')
+    .max(50, 'Last name cannot exceed 50 characters')
+    .transform((v) => v.trim()),
+
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Invalid email address')
+    .transform((v) => v.trim().toLowerCase()),
+
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/\d/, 'Password must contain at least one number'),
 });
 
-export const roleParamsSchema = z.object({
-  id: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid role ID'),
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email is required')
+    .email('Invalid email address')
+    .transform((v) => v.trim().toLowerCase()),
+
+  password: z.string().min(1, 'Password is required'),
+});
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(1, 'Refresh token is required'),
 });
