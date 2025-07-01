@@ -6,6 +6,13 @@ import type {
   RegisterRequest,
 } from "@/types/auth.types";
 
+interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
 // Define a type for the stored user data
 interface StoredUser {
   id: string;
@@ -227,6 +234,38 @@ export const authService = {
     } catch (error) {
       this.clearAuthData();
       return false;
+    }
+  },
+  getCurrentUser(): User | null {
+    if (typeof window === "undefined") return null;
+
+    try {
+      const userData = localStorage.getItem("user"); // ✅ CORRECT KEY
+      if (!userData) return null;
+
+      const parsedUser = JSON.parse(userData);
+      if (
+        parsedUser &&
+        typeof parsedUser === "object" &&
+        typeof parsedUser.id === "string" &&
+        typeof parsedUser.email === "string"
+      ) {
+        return parsedUser;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to parse user data", error);
+      return null;
+    }
+  },
+
+  async logout(): Promise<void> {
+    try {
+      await api.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout API call failed", error);
+    } finally {
+      this.clearAuthData();
     }
   },
 };

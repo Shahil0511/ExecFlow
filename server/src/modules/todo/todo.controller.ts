@@ -13,20 +13,34 @@ export class TodoController {
   // ✅ CREATE
   createTodo = async (req: Request<{}, {}, CreateTodoRequest>, res: Response): Promise<void> => {
     try {
-      const createdBy = (req.user as { id: string })?.id;
-      if (!createdBy) throw new AppError('Unauthorized', 401);
+      console.log('✅ [createTodo] Request body:', req.body);
+      console.log('✅ [createTodo] Authenticated user:', req.user);
 
-      const todo = await this.todoService.createTodo({
+      if (!req.user) {
+        console.log('🔴 [createTodo] No user in request');
+        throw new AppError('Unauthorized', 401);
+      }
+
+      const todoData = {
         ...req.body,
-        createdBy,
-      });
+        createdBy: req.user.id,
+        dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
+      } as CreateTodoRequest;
 
+      console.log('🔵 [createTodo] Processed todo data:', todoData);
+
+      const todo = await this.todoService.createTodo(todoData);
+
+      console.log('🟢 [createTodo] Todo created successfully');
       res.status(201).json({ status: 'success', data: { todo } });
     } catch (err) {
-      throw err;
+      console.error('🔴 [createTodo] Error:', err);
+      if (err instanceof AppError) {
+        throw err;
+      }
+      throw new AppError('Failed to create todo', 500);
     }
   };
-
   // ✅ GET ALL
   getTodos = async (req: Request<{}, {}, {}, TodoQueryParams>, res: Response): Promise<void> => {
     try {

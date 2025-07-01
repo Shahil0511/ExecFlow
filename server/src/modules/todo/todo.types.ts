@@ -24,7 +24,7 @@ export interface CreateTodoRequest {
   title: string;
   description?: string;
   priority?: 'low' | 'medium' | 'high';
-  dueDate?: string;
+  dueDate?: string | Date; // Accept both string and Date
   assignedTo?: string[];
   createdBy: string;
 }

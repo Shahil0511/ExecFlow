@@ -8,6 +8,7 @@ import {
   todoParamsSchema,
   todoQuerySchema,
 } from './todo.validation';
+import { authenticate } from '@/middlewares/auth.middleware';
 
 const router = Router();
 const todoController = new TodoController();
@@ -18,7 +19,7 @@ router.get('/stats', todoController.getStats);
 router
   .route('/')
   .get(validateQuery(todoQuerySchema), todoController.getTodos)
-  .post(validateBody(createTodoSchema), todoController.createTodo);
+  .post(authenticate, validateBody(createTodoSchema), todoController.createTodo);
 
 router
   .route('/:id') // No regex pattern here

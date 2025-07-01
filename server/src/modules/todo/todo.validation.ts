@@ -2,17 +2,13 @@ import { z } from 'zod';
 
 // 🔵 Create Todo Schema
 export const createTodoSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100, 'Title cannot exceed 100 characters'),
-  description: z.string().max(500, 'Description cannot exceed 500 characters').optional(),
-  priority: z.enum(['low', 'medium', 'high']).optional(),
-  dueDate: z
-    .string()
-    .refine((val) => !isNaN(Date.parse(val)), 'Due date must be a valid ISO datetime string')
-    .optional(),
-  assignedTo: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/)).optional(),
-  createdBy: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID'),
+  title: z.string(),
+  description: z.string().optional(),
+  priority: z.string().optional(),
+  dueDate: z.string().optional(),
+  assignedTo: z.array(z.string()).optional(),
+  createdBy: z.string(),
 });
-
 // 🟡 Update Todo Schema
 export const updateTodoSchema = z.object({
   title: z

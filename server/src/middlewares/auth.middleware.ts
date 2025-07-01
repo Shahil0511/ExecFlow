@@ -2,110 +2,84 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { User } from '../modules/user/user.model';
-import { JWT_SECRET } from '../config/env';
-import { ApiError } from '@/utils/ApiError';
+import { config } from '@/config/env';
+// import { env } from '../config/env';
+import { AppError } from '../utils/app-error';
+import mongoose from 'mongoose';
 
-export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    roles: string[];
-  };
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        roles: string[]; // Changed to string[] to match your middleware
+      };
+    }
+  }
 }
 
-interface JwtPayload {
-  id: string;
-  iat: number;
-  exp: number;
-}
-
-/**
- * Authentication middleware – verifies JWT token
- */
-export const authenticate = async (
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
+// src/middlewares/auth.middleware.ts
+export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // 1. Get token from header
-    const authHeader = req.headers.authorization || '';
-    const [, token] = authHeader.startsWith('Bearer ') ? authHeader.split(' ') : [];
+    const authHeader = req.headers.authorization;
+
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
     if (!token) {
-      res.status(401).json({
-        status: 'fail',
-        message: 'You are not logged in. Please log in to get access.',
-      });
-      return;
+      throw new AppError('Authentication token missing', 401);
     }
 
     // 2. Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, config.JWT_SECRET) as {
+      userId(userId: any): unknown;
+      id: string;
+    };
 
-    // 3. Check if user still exists
-    const currentUser = await User.findById(decoded.id).select('+roles');
+    // 3. Check if user exists
+    const currentUser = await User.findById(decoded.userId); // ✅ works!
+
     if (!currentUser) {
-      res.status(401).json({
-        status: 'fail',
-        message: 'The user belonging to this token no longer exists.',
-      });
-      return;
+      throw new AppError('User not found', 404);
     }
 
-    // 4. Check if user changed password after token was issued
-    if (currentUser.changedPasswordAfter(decoded.iat)) {
-      res.status(401).json({
-        status: 'fail',
-        message: 'User recently changed password. Please log in again.',
-      });
-      return;
-    }
-
-    // 5. Grant access to protected route
+    // 4. Attach user to request
     req.user = {
       id: currentUser._id.toString(),
       email: currentUser.email,
-      roles: currentUser.roles.map((r) => r.toString()),
+      roles: currentUser.roles.map((role: any) => {
+        if (mongoose.isValidObjectId(role)) return role.toString();
+        if (typeof role === 'object' && role._id) return role._id.toString();
+        return String(role);
+      }),
     };
 
-    next(); // success path
+    console.log('🟢 [authenticate] User attached to request:', req.user);
+    next();
   } catch (err) {
-    res.status(401).json({
-      status: 'fail',
-      message: 'Invalid token. Please log in again.',
-    });
+    console.error('🔴 [authenticate] Error:', err);
+    next(err);
   }
 };
 
-export const authorize = (allowedRoles: string[]) => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authorize = (...requiredRoles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
     try {
-      // 1. Check if user exists on request (must come after authenticate)
       if (!req.user) {
-        throw new ApiError(403, 'You are not authorized to access this resource');
+        throw new AppError('Not authenticated', 401);
       }
 
-      // 2. Check if user has any of the allowed roles
-      const hasRole = req.user.roles.some((role) => allowedRoles.includes(role));
-      if (!hasRole) {
-        throw new ApiError(403, `Required roles: ${allowedRoles.join(', ')}`);
+      // Check if user has any of the required roles
+      const hasRequiredRole = requiredRoles.some((role) => req.user?.roles.includes(role));
+
+      if (!hasRequiredRole) {
+        throw new AppError(`Required roles: ${requiredRoles.join(', ')}`, 403);
       }
 
-      // 3. Grant access
       next();
-    } catch (error) {
-      if (error instanceof ApiError) {
-        res.status(error.statusCode).json({
-          status: 'fail',
-          message: error.message,
-        });
-      } else {
-        res.status(500).json({
-          status: 'error',
-          message: 'Authorization failed',
-        });
-      }
+    } catch (err) {
+      next(err);
     }
   };
 };

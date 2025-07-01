@@ -15,7 +15,12 @@ const app = express();
 // ----------------------
 
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  })
+);
 
 // ----------------------
 // Rate limiting
@@ -57,7 +62,7 @@ app.get('/health', (req, res) => {
 // Main API Routes
 // ----------------------
 console.log('[ROUTE] Registering /api routes');
-app.use('/api/', todoRoutes);
+app.use('/api/todo/', todoRoutes);
 app.use('/api/auth/', authRoutes);
 app.use('/api/user/', userRoutes);
 

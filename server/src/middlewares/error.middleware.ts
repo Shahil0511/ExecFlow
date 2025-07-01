@@ -16,22 +16,15 @@ export const errorMiddleware = (
     method: req.method,
   });
 
-  // Zod validation errors
   if (error instanceof ZodError) {
     const errors = error.errors.map((err) => ({
       field: err.path.join('.'),
       message: err.message,
     }));
-
-    res.status(400).json({
-      status: 'error',
-      message: 'Validation failed',
-      errors,
-    });
+    res.status(400).json({ status: 'error', message: 'Validation failed', errors });
     return;
   }
 
-  // Custom application errors
   if (error instanceof AppError) {
     res.status(error.statusCode).json({
       status: 'error',
@@ -40,7 +33,6 @@ export const errorMiddleware = (
     return;
   }
 
-  // MongoDB errors
   if (error.name === 'ValidationError') {
     res.status(400).json({
       status: 'error',
@@ -61,7 +53,6 @@ export const errorMiddleware = (
     return;
   }
 
-  // Default error
   res.status(500).json({
     status: 'error',
     message: 'Internal server error',
