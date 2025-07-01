@@ -18,7 +18,7 @@ router.get('/stats', todoController.getStats);
 
 router
   .route('/')
-  .get(validateQuery(todoQuerySchema), todoController.getTodos)
+  .get(authenticate, validateQuery(todoQuerySchema), todoController.getTodos)
   .post(authenticate, validateBody(createTodoSchema), todoController.createTodo);
 
 router

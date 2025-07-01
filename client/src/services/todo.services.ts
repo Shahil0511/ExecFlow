@@ -42,7 +42,7 @@ export interface TodoListResponse {
 
 export class TodoService {
   private static instance: TodoService;
-  private basePath = "/todo"; // Now just the endpoint path since baseURL is in Axios config
+  private basePath = "/todo";
 
   private constructor() {}
 
@@ -106,7 +106,8 @@ export class TodoService {
     const queryString = params.toString();
     const url = queryString ? `?${queryString}` : "";
 
-    return this.request("GET", url);
+    const response = await this.request<{ data: TodoListResponse }>("GET", url);
+    return response.data; // Extract `data` from the response
   }
 
   async getTodoById(id: string): Promise<Todo> {

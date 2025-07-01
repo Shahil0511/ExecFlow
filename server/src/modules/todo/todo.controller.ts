@@ -44,6 +44,7 @@ export class TodoController {
   // ✅ GET ALL
   getTodos = async (req: Request<{}, {}, {}, TodoQueryParams>, res: Response): Promise<void> => {
     try {
+      console.log('route hit');
       const result = await this.todoService.getTodos(req.query);
       res.status(200).json({ status: 'success', data: result });
     } catch (err) {

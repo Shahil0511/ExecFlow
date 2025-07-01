@@ -37,18 +37,30 @@ export const Dashboard = () => {
                 completed: filters.completed !== undefined ? String(filters.completed) : undefined,
                 priority: filters.priority,
                 sortBy: filters.sortBy,
-                sortOrder: filters.sortOrder
+                sortOrder: filters.sortOrder,
+                // Optional: Add pagination if needed
+                page: "1",
+                limit: "1000", // Fetch all todos (adjust if needed)
             };
 
+            // Fetch todos and stats in parallel
             const [todosResponse, statsResponse] = await Promise.all([
                 todoService.getTodos(query),
-                todoService.getStats()
+                todoService.getStats(),
             ]);
 
+            // Update todos state
             setTodos(todosResponse.todos);
-            setStats(statsResponse);
+
+            // Transform stats to match frontend structure
+            setStats({
+                total: statsResponse.total,
+                completed: statsResponse.completed,
+                pending: statsResponse.total - statsResponse.completed, // Calculate pending
+                byPriority: statsResponse.byPriority || { low: 0, medium: 0, high: 0 },
+            });
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch todos');
+            setError(err instanceof Error ? err.message : "Failed to fetch todos");
         } finally {
             setLoading(false);
         }

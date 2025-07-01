@@ -52,7 +52,7 @@ export const todoQuerySchema = z.object({
   limit: z
     .string()
     .transform((val) => Number(val))
-    .refine((val) => Number.isInteger(val) && val > 0 && val <= 100, {
+    .refine((val) => Number.isInteger(val) && val > 0 && val <= 1000, {
       message: 'Limit must be between 1 and 100',
     })
     .optional(),
