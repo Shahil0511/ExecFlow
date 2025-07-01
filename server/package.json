@@ -5,12 +5,12 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write .",
-    "typecheck": "tsc --noEmit",
-    "test": "echo \"No tests yet\""
+    "build": "tsc && rsync -r --exclude='*.ts' src/config dist/ && cp package.json dist/",
+    "start": "node -r module-alias/register dist/server.js",
+    "render-build": "npm install && npm run build"
+  },
+  "_moduleAliases": {
+    "@": "src"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +27,7 @@
     "helmet": "^8.1.0",
     "http-status": "^2.1.0",
     "jsonwebtoken": "^9.0.2",
+    "module-alias": "^2.2.3",
     "mongo-sanitize": "^1.1.0",
     "mongoose": "^8.16.1",
     "ms": "^2.1.3",

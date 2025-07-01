@@ -2,6 +2,7 @@ import { config } from '@/config/env';
 import { logger } from '@/config/logger';
 import { connectDatabase } from '@/config/database';
 import { app } from '@/app';
+import 'module-alias/register';
 
 const startServer = async (): Promise<void> => {
   try {
