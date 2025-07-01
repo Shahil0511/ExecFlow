@@ -1,43 +1,48 @@
-// auth.validation.ts
+// src/modules/role/role.validation.ts
 import { z } from 'zod';
 
-export const registerSchema = z.object({
-  firstName: z
-    .string()
-    .min(1, 'First name is required')
-    .max(50, 'First name cannot exceed 50 characters')
-    .transform((v) => v.trim()),
+// Common validation strings
+const nameValidation = z
+  .string()
+  .min(2, 'Name must be at least 2 characters')
+  .max(50, 'Name cannot exceed 50 characters')
+  .transform((v) => v.trim());
 
-  lastName: z
-    .string()
-    .min(1, 'Last name is required')
-    .max(50, 'Last name cannot exceed 50 characters')
-    .transform((v) => v.trim()),
+const descriptionValidation = z
+  .string()
+  .max(255, 'Description cannot exceed 255 characters')
+  .optional();
 
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Invalid email address')
-    .transform((v) => v.trim().toLowerCase()),
-
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/\d/, 'Password must contain at least one number'),
+// Schema for role ID params
+export const roleParamsSchema = z.object({
+  id: z.string().uuid('Invalid role ID format'),
 });
 
-export const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Invalid email address')
-    .transform((v) => v.trim().toLowerCase()),
-
-  password: z.string().min(1, 'Password is required'),
+// Schema for creating a role
+export const createRoleSchema = z.object({
+  name: nameValidation,
+  description: descriptionValidation,
+  permissions: z
+    .array(z.string().min(1, 'Permission cannot be empty'))
+    .min(1, 'At least one permission is required'),
 });
 
-export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
-});
+// Schema for updating a role
+export const updateRoleSchema = z
+  .object({
+    name: nameValidation.optional(),
+    description: descriptionValidation,
+    permissions: z
+      .array(z.string().min(1, 'Permission cannot be empty'))
+      .min(1, 'At least one permission is required')
+      .optional(),
+  })
+  .refine(
+    (data) => data.name || data.description || data.permissions,
+    'At least one field must be provided for update'
+  );
+
+// Type exports for TypeScript usage
+export type CreateRoleInput = z.infer<typeof createRoleSchema>;
+export type UpdateRoleInput = z.infer<typeof updateRoleSchema>;
+export type RoleParamsInput = z.infer<typeof roleParamsSchema>;
