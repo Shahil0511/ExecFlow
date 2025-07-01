@@ -2,7 +2,7 @@ import axios from "axios";
 
 const api = axios.create({
   // baseURL: "http://localhost:3000/api",
-  baseURL: "https://execflow.onrender.com",
+  baseURL: "https://execflow.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
