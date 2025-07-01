@@ -34,7 +34,9 @@ export class UserService {
       });
     }
 
-    return defaultRole._id;
+    return defaultRole._id instanceof Types.ObjectId
+      ? defaultRole._id
+      : new Types.ObjectId(defaultRole._id.toString());
   }
 
   /**

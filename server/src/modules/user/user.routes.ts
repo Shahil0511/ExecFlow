@@ -32,7 +32,7 @@ router.patch(
 );
 
 // Admin-only routes
-router.use(authorize(['admin']));
+// router.use(authorize(['admin']));
 
 // User management routes
 router.get('/', validateQuery(userQuerySchema), UserController.getUsers);
