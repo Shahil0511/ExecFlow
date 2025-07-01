@@ -17,11 +17,10 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'https://execflow-1.onrender.com'],
     credentials: true,
   })
 );
-
 // ----------------------
 // Rate limiting
 // ----------------------
