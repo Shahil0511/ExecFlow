@@ -55,7 +55,6 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       }),
     };
 
-    console.log('🟢 [authenticate] User attached to request:', req.user);
     next();
   } catch (err) {
     console.error('🔴 [authenticate] Error:', err);

@@ -23,8 +23,13 @@ router
 
 router
   .route('/:id') // No regex pattern here
-  .get(validateParams(todoParamsSchema), todoController.getTodoById)
-  .put(validateParams(todoParamsSchema), validateBody(updateTodoSchema), todoController.updateTodo)
-  .delete(validateParams(todoParamsSchema), todoController.deleteTodo);
+  .get(authenticate, validateParams(todoParamsSchema), todoController.getTodoById)
+  .put(
+    authenticate,
+    validateParams(todoParamsSchema),
+    validateBody(updateTodoSchema),
+    todoController.updateTodo
+  )
+  .delete(authenticate, validateParams(todoParamsSchema), todoController.deleteTodo);
 
 export { router as todoRoutes };

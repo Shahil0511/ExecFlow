@@ -65,9 +65,9 @@ export const CreateTodoModal = ({ isOpen, onClose, onSubmit, isLoading = false }
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("🟡 [Modal] Submit triggered");
+
         if (validateForm()) {
-            console.log("🟢 [Modal] Valid formData:", formData);
+
             onSubmit(formData);
             // Reset form
             setFormData({

@@ -47,4 +47,5 @@ export interface TodoQueryParams {
   priority?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  includeDeleted?: boolean;
 }

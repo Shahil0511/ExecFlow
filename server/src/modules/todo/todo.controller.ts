@@ -13,11 +13,7 @@ export class TodoController {
   // ✅ CREATE
   createTodo = async (req: Request<{}, {}, CreateTodoRequest>, res: Response): Promise<void> => {
     try {
-      console.log('✅ [createTodo] Request body:', req.body);
-      console.log('✅ [createTodo] Authenticated user:', req.user);
-
       if (!req.user) {
-        console.log('🔴 [createTodo] No user in request');
         throw new AppError('Unauthorized', 401);
       }
 
@@ -27,11 +23,8 @@ export class TodoController {
         dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
       } as CreateTodoRequest;
 
-      console.log('🔵 [createTodo] Processed todo data:', todoData);
-
       const todo = await this.todoService.createTodo(todoData);
 
-      console.log('🟢 [createTodo] Todo created successfully');
       res.status(201).json({ status: 'success', data: { todo } });
     } catch (err) {
       console.error('🔴 [createTodo] Error:', err);
@@ -42,22 +35,36 @@ export class TodoController {
     }
   };
   // ✅ GET ALL
-  getTodos = async (req: Request<{}, {}, {}, TodoQueryParams>, res: Response): Promise<void> => {
+  getTodos = async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log('route hit');
-      const result = await this.todoService.getTodos(req.query);
-      res.status(200).json({ status: 'success', data: result });
+      const query = {
+        ...req.query,
+        // Always exclude deleted todos in the frontend
+        includeDeleted: false,
+      };
+
+      const result = await this.todoService.getTodos(query);
+
+      res.status(200).json({
+        status: 'success',
+        data: result,
+      });
     } catch (err) {
+      console.error('🔴 [Controller] Get todos error:', err);
       throw err;
     }
   };
-
   // ✅ GET BY ID
   getTodoById = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
     try {
       const todo = await this.todoService.getTodoById(req.params.id);
-      res.status(200).json({ status: 'success', data: { todo } });
+
+      res.status(200).json({
+        status: 'success',
+        data: { todo },
+      });
     } catch (err) {
+      console.error('🔴 [Controller] Get todo by ID error:', err);
       throw err;
     }
   };
@@ -71,13 +78,20 @@ export class TodoController {
       const editedBy = (req.user as { id: string })?.id;
       if (!editedBy) throw new AppError('Unauthorized', 401);
 
-      const todo = await this.todoService.updateTodo(req.params.id, {
+      // Make sure we're actually passing the todo data, not just metadata
+      const updateData = {
         ...req.body,
-        editedBy,
-      });
+        editedBy, // Add the editedBy field
+      };
 
-      res.status(200).json({ status: 'success', data: { todo } });
+      const todo = await this.todoService.updateTodo(req.params.id, updateData);
+
+      res.status(200).json({
+        status: 'success',
+        data: { todo },
+      });
     } catch (err) {
+      console.error('🔴 [Controller] Update todo error:', err);
       throw err;
     }
   };
@@ -89,8 +103,10 @@ export class TodoController {
       if (!deletedBy) throw new AppError('Unauthorized', 401);
 
       await this.todoService.deleteTodo(req.params.id, deletedBy);
-      res.status(204).send();
+
+      res.status(204).send(); // 204 No Content for successful deletion
     } catch (err) {
+      console.error('🔴 [Controller] Delete todo error:', err);
       throw err;
     }
   };
@@ -99,8 +115,10 @@ export class TodoController {
   getStats = async (req: Request, res: Response): Promise<void> => {
     try {
       const stats = await this.todoService.getStats();
+
       res.status(200).json({ status: 'success', data: { stats } });
     } catch (err) {
+      console.error('🔴 [Controller] Get stats error:', err);
       throw err;
     }
   };

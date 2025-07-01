@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { motion, } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Header } from '../customcomponents/dashboards/Header';
 import { StatsCard } from '../customcomponents/dashboards/StatCards';
 import { FilterCard } from '../customcomponents/dashboards/FilterCards';
 import { TodoCard } from '../customcomponents/dashboards/TodoCard';
 import { CreateTodoModal, type NewTodo } from '../customcomponents/dashboards/CreateTodo';
+import { EditTodoModal } from '../customcomponents/dashboards/EditTodo';
 import { todoService, type Todo } from '../services/todo.services';
 import { authService } from '../services/auth.service';
 import { Plus, X } from 'lucide-react';
 
 export const Dashboard = () => {
     const [todos, setTodos] = useState<Todo[]>([]);
+    const [editTodo, setEditTodo] = useState<Todo | null>(null);
     const [stats, setStats] = useState({
         total: 0,
         completed: 0,
@@ -20,6 +22,7 @@ export const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [filters, setFilters] = useState({
         completed: undefined as boolean | undefined,
         priority: undefined as 'low' | 'medium' | 'high' | undefined,
@@ -38,9 +41,8 @@ export const Dashboard = () => {
                 priority: filters.priority,
                 sortBy: filters.sortBy,
                 sortOrder: filters.sortOrder,
-                // Optional: Add pagination if needed
                 page: "1",
-                limit: "1000", // Fetch all todos (adjust if needed)
+                limit: "1000",
             };
 
             // Fetch todos and stats in parallel
@@ -56,7 +58,7 @@ export const Dashboard = () => {
             setStats({
                 total: statsResponse.total,
                 completed: statsResponse.completed,
-                pending: statsResponse.total - statsResponse.completed, // Calculate pending
+                pending: statsResponse.total - statsResponse.completed,
                 byPriority: statsResponse.byPriority || { low: 0, medium: 0, high: 0 },
             });
         } catch (err) {
@@ -92,7 +94,52 @@ export const Dashboard = () => {
         }
     };
 
-    // Update todo
+    // Open edit modal
+    const handleOpenEditModal = (todo: Todo) => {
+        console.log('🔵 Opening edit modal for todo:', todo);
+        setEditTodo(todo);
+        setIsEditModalOpen(true);
+    };
+
+    // Close edit modal
+    const handleCloseEditModal = () => {
+        console.log('🔵 Closing edit modal');
+        setEditTodo(null);
+        setIsEditModalOpen(false);
+    };
+
+    // Update todo from edit modal
+    const handleEditTodoSubmit = async (updatedTodo: Partial<Todo>) => {
+        if (!editTodo) return;
+
+        try {
+            setLoading(true);
+            console.log('🔵 Updating todo:', { original: editTodo, updates: updatedTodo });
+
+            const editedBy = authService.getCurrentUser()?.id;
+            if (!editedBy) throw new Error('User not authenticated');
+
+            // Merge the updates with the original todo
+            const todoToUpdate = {
+                ...editTodo,
+                ...updatedTodo,
+                editedBy
+            };
+
+            await todoService.updateTodo(editTodo.id, todoToUpdate);
+
+            console.log('✅ Todo updated successfully');
+            await fetchTodos();
+            handleCloseEditModal();
+        } catch (err) {
+            console.error('❌ Failed to update todo:', err);
+            setError(err instanceof Error ? err.message : 'Failed to update todo');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Legacy update todo function (keep for compatibility)
     const handleUpdateTodo = async (updatedTodo: Todo) => {
         try {
             setLoading(true);
@@ -119,9 +166,13 @@ export const Dashboard = () => {
             const deletedBy = authService.getCurrentUser()?.id;
             if (!deletedBy) throw new Error('User not authenticated');
 
+            console.log('🔵 Deleting todo:', { id, deletedBy });
             await todoService.deleteTodo(id, deletedBy);
+
+            console.log('✅ Todo deleted successfully');
             await fetchTodos();
         } catch (err) {
+            console.error('❌ Failed to delete todo:', err);
             setError(err instanceof Error ? err.message : 'Failed to delete todo');
         } finally {
             setLoading(false);
@@ -130,6 +181,8 @@ export const Dashboard = () => {
 
     // Toggle completion status
     const handleToggleComplete = async (todo: Todo) => {
+        console.log('🔵 Toggling completion for todo:', { id: todo.id, currentStatus: todo.completed });
+
         await handleUpdateTodo({
             ...todo,
             completed: !todo.completed
@@ -207,7 +260,7 @@ export const Dashboard = () => {
                                 key={todo.id}
                                 todo={todo}
                                 onToggleComplete={handleToggleComplete}
-                                onEdit={handleUpdateTodo}
+                                onEdit={handleOpenEditModal} // Changed this line
                                 onDelete={handleDeleteTodo}
                             />
                         ))}
@@ -222,6 +275,17 @@ export const Dashboard = () => {
                 onSubmit={handleCreateTodo}
                 isLoading={loading}
             />
+
+            {/* Edit Todo Modal */}
+            {editTodo && (
+                <EditTodoModal
+                    isOpen={isEditModalOpen}
+                    onClose={handleCloseEditModal}
+                    onSubmit={handleEditTodoSubmit}
+                    todo={editTodo}
+                    isLoading={loading}
+                />
+            )}
         </div>
     );
 };
