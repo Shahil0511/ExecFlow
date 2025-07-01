@@ -10,7 +10,7 @@
     "render-build": "npm install && npm run build"
   },
   "_moduleAliases": {
-    "@": "src"
+    "@": "dist"
   },
   "keywords": [],
   "author": "",
