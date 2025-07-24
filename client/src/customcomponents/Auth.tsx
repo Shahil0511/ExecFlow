@@ -28,14 +28,14 @@ export const AuthSection = ({ onBack }: { onBack: () => void }) => {
         setIsLoading(true);
 
         try {
-            let response;
+            
             if (isLogin) {
-                response = await authService.login({
+                await authService.login({
                     email: formData.email,
                     password: formData.password
                 });
             } else {
-                response = await authService.signUp({
+                 await authService.signUp({
                     firstName: formData.firstName,
                     lastName: formData.lastName,
                     email: formData.email,
