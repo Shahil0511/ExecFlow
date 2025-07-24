@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LogOut, List, Menu, User, Shield, Settings } from 'lucide-react';
 import { selectUser, selectIsAdmin, selectIsEA } from '@/redux/slices/authSlice';
