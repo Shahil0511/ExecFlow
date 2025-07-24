@@ -1,3 +1,4 @@
+// src/services/authService.ts
 import axios from "axios";
 import api from "./api";
 import type {
@@ -5,16 +6,16 @@ import type {
   LoginRequest,
   RegisterRequest,
 } from "@/types/auth.types";
+import { store } from "@/redux/store";
+import {
+  loginStart,
+  loginSuccess,
+  loginFailure,
+  logout as logoutAction,
+  refreshTokenSuccess,
+} from "@/redux/slices/authSlice";
 
 interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-}
-
-// Define a type for the stored user data
-interface StoredUser {
   id: string;
   email: string;
   firstName: string;
@@ -27,6 +28,11 @@ interface RefreshTokenResponse {
   access: string;
   refresh?: string;
 }
+const ROLE_MAP: Record<string, string> = {
+  "6862b12fde5bf9d99af341a4": "admin",
+  "6862b12fde5bf9d99af341a5": "ea",
+  // Add more role ID => role name pairs as needed
+};
 
 export const authService = {
   /**
@@ -34,14 +40,40 @@ export const authService = {
    */
   async signUp(userData: RegisterRequest): Promise<AuthResponse> {
     try {
+      store.dispatch(loginStart());
       const response = await api.post("/auth/register", userData);
 
       if (response.data.data) {
-        this.storeAuthData(response.data.data);
+        const user = response.data.data.user;
+        const tokens = response.data.data.tokens;
+
+        // Normalize role IDs to role names
+        const mappedRoles = user.roles.map(
+          (roleId: string) => ROLE_MAP[roleId] || roleId
+        );
+
+        // Dispatch to Redux store
+        store.dispatch(
+          loginSuccess({
+            user: {
+              id: String(user.id),
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              roles: mappedRoles,
+            },
+            tokens,
+          })
+        );
+
+        // Set auth header
+        this.setAuthHeader(tokens.access);
       }
 
       return response.data.data;
     } catch (error) {
+      store.dispatch(loginFailure());
+
       if (axios.isAxiosError(error)) {
         let errorMessage = "Registration failed";
 
@@ -58,6 +90,7 @@ export const authService = {
 
         throw new Error(errorMessage);
       }
+
       throw new Error("Registration failed. Please try again later.");
     }
   },
@@ -67,12 +100,31 @@ export const authService = {
    */
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
+      store.dispatch(loginStart());
       const response = await api.post("/auth/login", credentials);
       const authData = response.data.data;
 
-      this.storeAuthData(authData);
+      // Dispatch to Redux store
+      store.dispatch(
+        loginSuccess({
+          user: {
+            id: String(authData.user.id),
+            email: authData.user.email,
+            firstName: authData.user.firstName,
+            lastName: authData.user.lastName,
+            roles: authData.user.roles.map((id: string) => ROLE_MAP[id] || id),
+          },
+          tokens: authData.tokens,
+        })
+      );
+
+      // Set auth header
+      this.setAuthHeader(authData.tokens.access);
+
       return authData;
     } catch (error) {
+      store.dispatch(loginFailure());
+
       if (axios.isAxiosError(error)) {
         throw new Error(
           error.response?.data?.message ||
@@ -89,8 +141,20 @@ export const authService = {
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
     try {
       const response = await api.post("/auth/refresh-token", { refreshToken });
-      return response.data.data;
+      const tokenData = response.data.data;
+
+      // Update Redux store
+      store.dispatch(refreshTokenSuccess(tokenData));
+
+      // Update auth header
+      this.setAuthHeader(tokenData.access);
+
+      return tokenData;
     } catch (error) {
+      // If refresh fails, logout user
+      store.dispatch(logoutAction());
+      this.clearAuthHeader();
+
       if (axios.isAxiosError(error)) {
         throw new Error(
           error.response?.data?.message ||
@@ -102,49 +166,35 @@ export const authService = {
   },
 
   /**
-   * Store authentication data (tokens + user info)
+   * Get stored access token from Redux state
    */
-  storeAuthData(authData: AuthResponse): void {
-    if (!authData) return;
-
-    // Store tokens
-    if (authData.tokens) {
-      this.storeTokens(authData.tokens);
-    }
-
-    // Store user data with type conversion
-    if (authData.user) {
-      this.storeUser({
-        id: String(authData.user.id), // Ensure string conversion
-        email: authData.user.email,
-        firstName: authData.user.firstName,
-        lastName: authData.user.lastName,
-        roles: authData.user.roles.map((role) => String(role)), // Convert each role to string
-      });
-    }
+  getAccessToken(): string | null {
+    const state = store.getState();
+    return state.auth.accessToken || localStorage.getItem("accessToken");
   },
 
   /**
-   * Store user data in localStorage
+   * Get stored refresh token from Redux state
    */
-  storeUser(user: StoredUser): void {
-    localStorage.setItem("user", JSON.stringify(user));
+  getRefreshToken(): string | null {
+    const state = store.getState();
+    return state.auth.refreshToken || localStorage.getItem("refreshToken");
   },
 
   /**
-   * Get stored user data
+   * Get current user from Redux state
    */
-  getStoredUser(): StoredUser | null {
-    const userStr = localStorage.getItem("user");
-    return userStr ? JSON.parse(userStr) : null;
+  getCurrentUser(): User | null {
+    const state = store.getState();
+    return state.auth.user;
   },
 
   /**
-   * Get user roles
+   * Get user roles from Redux state
    */
   getUserRoles(): string[] {
-    const user = this.getStoredUser();
-    return user?.roles || [];
+    const state = store.getState();
+    return state.auth.user?.roles || [];
   },
 
   /**
@@ -164,43 +214,24 @@ export const authService = {
   },
 
   /**
-   * Clear all authentication data
+   * Check if user is admin
    */
-  clearAuthData(): void {
-    this.clearTokens();
-    localStorage.removeItem("user");
+  isAdmin(): boolean {
+    return this.hasRole("admin");
   },
 
   /**
-   * Store tokens in localStorage and set auth header
+   * Check if user is EA
    */
-  storeTokens(tokens: { access: string; refresh: string }): void {
-    localStorage.setItem("accessToken", tokens.access);
-    localStorage.setItem("refreshToken", tokens.refresh);
-    this.setAuthHeader(tokens.access);
+  isEA(): boolean {
+    return this.hasRole("ea");
   },
 
   /**
-   * Get stored access token
+   * Check if user is admin or EA
    */
-  getAccessToken(): string | null {
-    return localStorage.getItem("accessToken");
-  },
-
-  /**
-   * Get stored refresh token
-   */
-  getRefreshToken(): string | null {
-    return localStorage.getItem("refreshToken");
-  },
-
-  /**
-   * Clear tokens from storage and remove auth header
-   */
-  clearTokens(): void {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    delete api.defaults.headers.common["Authorization"];
+  isAdminOrEA(): boolean {
+    return this.hasAnyRole(["admin", "ea"]);
   },
 
   /**
@@ -208,6 +239,13 @@ export const authService = {
    */
   setAuthHeader(token: string): void {
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  },
+
+  /**
+   * Clear authorization header
+   */
+  clearAuthHeader(): void {
+    delete api.defaults.headers.common["Authorization"];
   },
 
   /**
@@ -228,44 +266,27 @@ export const authService = {
     if (!refreshToken) return false;
 
     try {
-      const { access } = await this.refreshToken(refreshToken);
-      this.storeTokens({ access, refresh: refreshToken });
+      await this.refreshToken(refreshToken);
       return true;
     } catch (error) {
-      this.clearAuthData();
+      console.error("Auto refresh failed:", error);
       return false;
     }
   },
-  getCurrentUser(): User | null {
-    if (typeof window === "undefined") return null;
 
-    try {
-      const userData = localStorage.getItem("user"); // ✅ CORRECT KEY
-      if (!userData) return null;
-
-      const parsedUser = JSON.parse(userData);
-      if (
-        parsedUser &&
-        typeof parsedUser === "object" &&
-        typeof parsedUser.id === "string" &&
-        typeof parsedUser.email === "string"
-      ) {
-        return parsedUser;
-      }
-      return null;
-    } catch (error) {
-      console.error("Failed to parse user data", error);
-      return null;
-    }
-  },
-
+  /**
+   * Logout user
+   */
   async logout(): Promise<void> {
     try {
       await api.post("/auth/logout");
     } catch (error) {
       console.error("Logout API call failed", error);
     } finally {
-      this.clearAuthData();
+      // Dispatch logout action to Redux
+      store.dispatch(logoutAction());
+      // Clear auth header
+      this.clearAuthHeader();
     }
   },
 };

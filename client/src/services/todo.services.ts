@@ -58,26 +58,14 @@ export class TodoService {
     data?: any
   ): Promise<T> {
     try {
-      console.log(`🔵 [TodoService] ${method} ${this.basePath}${url}`, data);
-
       const response = await api({
         method,
         url: `${this.basePath}${url}`,
         data,
       });
 
-      console.log(`✅ [TodoService] ${method} ${this.basePath}${url} Success`);
       return response.data;
     } catch (error: any) {
-      console.error("🔴 [TodoService] Request Failed:", {
-        method,
-        url: `${this.basePath}${url}`,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        error: error.response?.data,
-        message: error.message,
-      });
-
       throw new AppError(
         error.response?.data?.message || error.message || "Request failed",
         error.response?.status || 500
@@ -126,23 +114,19 @@ export class TodoService {
   }
 
   async updateTodo(id: string, data: UpdateTodoRequest): Promise<Todo> {
-    console.log("🔵 [TodoService] Updating todo:", { id, data });
     const response = await this.request<{
       status: string;
       data: { todo: Todo };
     }>("PUT", `/${id}`, data);
-    console.log("✅ [TodoService] Todo updated:", response.data.todo);
+
     return response.data.todo;
   }
 
   async deleteTodo(id: string, _deletedBy: string): Promise<void> {
-    console.log("🔵 [TodoService] Deleting todo:", id);
     await this.request<void>("DELETE", `/${id}`);
-    console.log("✅ [TodoService] Todo deleted successfully");
   }
 
   async getStats(): Promise<TodoStats> {
-    console.log("🔵 [TodoService] Getting stats");
     const response = await this.request<{
       status: string;
       data: { stats: TodoStats };

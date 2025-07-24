@@ -42,9 +42,7 @@ export const AuthSection = ({ onBack }: { onBack: () => void }) => {
                     password: formData.password
                 });
             }
-
-            authService.storeTokens(response.tokens);
-            navigate(isLogin ? '/dashboard' : '/onboarding');
+            navigate('/dashboard');
 
         } catch (error) {
             console.error('Authentication error:', error);

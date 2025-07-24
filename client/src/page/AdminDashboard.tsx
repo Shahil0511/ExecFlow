@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Header } from '../customcomponents/dashboards/Header';
-import { StatsCard } from '../customcomponents/dashboards/StatCards';
+import { AdminHeader } from '../customcomponents/dashboards/Admin/AdminHeader';
+import { AdminStatsCard } from '../customcomponents/dashboards/Admin/AdminStatsCard';
 import { FilterCard } from '../customcomponents/dashboards/FilterCards';
 import { TodoCard } from '../customcomponents/dashboards/TodoCard';
 import { CreateTodoModal, type NewTodo } from '../customcomponents/dashboards/CreateTodo';
 import { EditTodoModal } from '../customcomponents/dashboards/EditTodo';
 import { todoService, type Todo } from '../services/todo.services';
 import { authService } from '../services/auth.service';
-import { Plus, X } from 'lucide-react';
+import { Check, Clock, Plus, X } from 'lucide-react';
 
-export const Dashboard = () => {
+export const AdminDashboard = () => {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [editTodo, setEditTodo] = useState<Todo | null>(null);
     const [stats, setStats] = useState({
@@ -198,14 +198,35 @@ export const Dashboard = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <Header onLogout={handleLogout} />
+            <AdminHeader onLogout={handleLogout} />
 
             {/* Main Content */}
             <main className="container mx-auto px-4 py-8">
                 {/* Stats and Controls Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {/* Stats Card */}
-                    <StatsCard stats={stats} />
+                    <AdminStatsCard
+                        title="Total Tasks"
+                        value={stats.total}
+                        icon={<Plus className="w-5 h-5" />}
+                        color="blue"
+                    />
+
+                    {/* ────────────────  2️⃣  COMPLETED  ──────────────── */}
+                    <AdminStatsCard
+                        title="Completed"
+                        value={stats.completed}
+                        icon={<Check className="w-5 h-5" />}      // import { Check } from 'lucide-react'
+                        color="green"
+                    />
+
+                    {/* ────────────────  3️⃣  PENDING  ──────────────── */}
+                    <AdminStatsCard
+                        title="Pending"
+                        value={stats.pending}
+                        icon={<Clock className="w-5 h-5" />}      // import { Clock } from 'lucide-react'
+                        color="orange"
+                    />
 
                     {/* Filter Card */}
                     <FilterCard
